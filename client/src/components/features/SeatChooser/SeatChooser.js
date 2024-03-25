@@ -4,29 +4,37 @@ import { Button, Progress, Alert } from "reactstrap";
 import {
   getSeats,
   loadSeatsRequest,
+  loadSeats,
   getRequests,
 } from "../../../redux/seatsRedux";
 import "./SeatChooser.scss";
+import io from "socket.io-client";
 
 const SeatChooser = ({ chosenDay, chosenSeat, updateSeat }) => {
+  const [socket, setSocket] = useState();
+
   const dispatch = useDispatch();
   const seats = useSelector(getSeats);
   const requests = useSelector(getRequests);
 
-  const [timer, setTimer] = useState(null);
-
   useEffect(() => {
+    const socket = io(
+      process.env.NODE_ENV === "production" ? "" : "ws://localhost:8000",
+      { transports: ["websocket"] }
+    );
     dispatch(loadSeatsRequest());
-    if (!timer) {
-      const intervalId = setInterval(() => {
-        dispatch(loadSeatsRequest());
-      }, 120000);
-      setTimer(intervalId);
-    }
+    setSocket(socket);
+    socket.on("seatsUpdated", (seatsUpdated) =>
+      dispatch(loadSeats(seatsUpdated))
+    );
+
     return () => {
-      if (timer) clearInterval(timer);
+      if (socket) {
+        socket.disconnect();
+        console.log("Disconnect...");
+      }
     };
-  }, [dispatch, timer]);
+  }, [dispatch]);
 
   const isTaken = (seatId) => {
     return seats.some((item) => item.seat === seatId && item.day === chosenDay);
@@ -59,6 +67,19 @@ const SeatChooser = ({ chosenDay, chosenSeat, updateSeat }) => {
       );
   };
 
+  const freeSeatsNumber = () => {
+    let total = 50;
+    let seatsTaken = [];
+    for (let seat of seats) {
+      if (seat.day === chosenDay) {
+        seatsTaken.push(seat);
+      }
+    }
+
+    const freeSeats = total - seatsTaken.length;
+    return freeSeats;
+  };
+
   return (
     <div>
       <h3>Pick a seat</h3>
@@ -81,6 +102,7 @@ const SeatChooser = ({ chosenDay, chosenSeat, updateSeat }) => {
       {requests["LOAD_SEATS"] && requests["LOAD_SEATS"].error && (
         <Alert color="warning">Couldn't load seats...</Alert>
       )}
+      <p>Free seats: {freeSeatsNumber()}/50</p>
     </div>
   );
 };
