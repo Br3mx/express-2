@@ -22,8 +22,7 @@ const NODE_ENV = process.env.NODE_ENV;
 let dbUri = "";
 
 if (NODE_ENV === "production")
-  dbUri =
-    "mongodb+srv://br3mxbeats:mongodb123@cluster0.dwg4ehe.mongodb.net/NewWaveDB?retryWrites=true&w=majority";
+  dbUri = `mongodb+srv://br3mxbeats:${process.env.DB_PASS}@cluster0.dwg4ehe.mongodb.net/NewWaveDB?retryWrites=true&w=majority`;
 else if (NODE_ENV === "test") dbUri = "mongodb://0.0.0.0:27017/NewWaveDBtest";
 else dbUri = "mongodb://0.0.0.0:27017/NewWaveDB";
 
